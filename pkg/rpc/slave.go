@@ -13,9 +13,14 @@ import (
 
 const HeartbeatInterval = 5 * time.Second
 
+// Slave slave
 type Slave struct {
 	client proto.MouseService_DoClient
 	NodeId string
+	// mac addr for machine
+	mac string
+	// machine ip
+	ip     string
 	ticker *time.Ticker
 }
 

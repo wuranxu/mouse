@@ -2,7 +2,9 @@
 // defines message between MouseMaster and MouseSlave
 package rpc
 
-import "github.com/wuranxu/mouse/pkg/rpc/proto"
+import (
+	"github.com/wuranxu/mouse/pkg/rpc/proto"
+)
 
 type MsgType string
 

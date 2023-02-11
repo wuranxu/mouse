@@ -1,4 +1,4 @@
-package runner
+package core
 
 import (
 	"errors"
@@ -9,28 +9,30 @@ var (
 	CommandNotFound = errors.New("there aren't scripts for test")
 )
 
-type MouseCommand func() error
+type MouseCommand func()
 
 type Task struct {
 	// test scene id
 	SceneId int64
 	command MouseCommand
+	Weight  int
 }
 
-func (t *Task) Run() error {
-	if t.SceneId == 0 {
-		return t.runWithScene()
+func (t *Task) Run() {
+	if t.SceneId != 0 {
+		t.runWithScene()
+		return
 	}
 	// run by script
 	if t.command == nil {
-		return CommandNotFound
+		return
 	}
-	return t.command()
+	t.command()
 }
 
-func (t *Task) runWithScene() error {
+func (t *Task) runWithScene() {
 	fmt.Println("run with scene, parse scene data and run")
-	return nil
+	return
 }
 
 // NewScript use command for test just like locust/boomer

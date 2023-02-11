@@ -1,9 +1,10 @@
-package rpc
+package master
 
 import (
 	"errors"
 	"fmt"
 	"github.com/vmihailenco/msgpack/v5"
+	"github.com/wuranxu/mouse/pkg/rpc"
 	"github.com/wuranxu/mouse/pkg/rpc/proto"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/status"
@@ -49,11 +50,11 @@ type WorkNodeStat struct {
 	Count              int     `json:"count"`
 }
 
-func (m *Master) Broadcast(msgType MsgType, data []byte) {
+func (m *Master) Broadcast(msgType rpc.MsgType, data []byte) {
 	m.clients.Range(func(key, value any) bool {
 		node := key.(string)
 		worker := value.(*WorkNode)
-		err := worker.server.Send(NewMessage(msgType, node, data))
+		err := worker.server.Send(rpc.NewMessage(msgType, node, data))
 		if err != nil {
 			log.Printf("broadcast to client[%s] error: %v\n", node, string(data))
 			return false
@@ -62,19 +63,19 @@ func (m *Master) Broadcast(msgType MsgType, data []byte) {
 	})
 }
 
-func (m *Master) SendMsgToClient(msgType MsgType, nodeId string, data []byte) error {
+func (m *Master) SendMsgToClient(msgType rpc.MsgType, nodeId string, data []byte) error {
 	value, ok := m.clients.Load(nodeId)
 	node := value.(*WorkNode)
 	if !ok {
 		return ErrorClientNotExists
 	}
-	return node.server.Send(NewMessage(msgType, nodeId, data))
+	return node.server.Send(rpc.NewMessage(msgType, nodeId, data))
 }
 
 func (m *Master) updateClients(ch chan *proto.Message, srv proto.MouseService_DoServer) {
 	for data := range ch {
-		switch MsgType(data.MsgType) {
-		case Heartbeat:
+		switch rpc.MsgType(data.MsgType) {
+		case rpc.Heartbeat:
 			var stat WorkNodeStat
 			if err := msgpack.Unmarshal(data.Data, &stat); err != nil {
 				log.Println("unmarshal message failed: ", err)
@@ -83,10 +84,10 @@ func (m *Master) updateClients(ch chan *proto.Message, srv proto.MouseService_Do
 			m.clients.Store(data.NodeId, &WorkNode{
 				server: srv, WorkNodeStat: &stat,
 			})
-		case Quit, Stop:
+		case rpc.Quit, rpc.Stop:
 			m.clients.Delete(data.NodeId)
 			log.Println(data.NodeId, "has disconnected.")
-		case ClientReady, Reconnect:
+		case rpc.ClientReady, rpc.Reconnect:
 			node := &WorkNode{
 				server: srv,
 			}

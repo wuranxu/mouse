@@ -19,7 +19,8 @@ const (
 
 type IRunner interface {
 	Run()
-	CurrentMode() Mode
+	Env() *Environment
+	Mode() Mode
 }
 
 type RunnerOptions func(*Runner)
@@ -32,30 +33,58 @@ type Runner struct {
 	tasks []*Task
 }
 
-func (r *Runner) MaxQps() int {
-	return r.env.maxQps
+func (r *Runner) Env() *Environment {
+	return r.env
 }
 
-func (r *Runner) CurrentMode() Mode {
+func (r *Runner) Mode() Mode {
 	return r.mode
 }
 
-func (r *Runner) Run() {
-	if r.tasks == nil || len(r.tasks) == 0 {
+func (r *Runner) runWithUser() {
+	if r.env.user == 0 {
+		log.Println("please set stress model")
 		return
 	}
-	if r.MaxQps() == 0 {
-		// no qps limit
-		for _, task := range r.tasks {
-			task.Run()
+	if r.env.ramUp == 0 {
+		r.env.ramUp = 1
+	}
+	step := r.env.user / r.env.ramUp
+	var current int64
+	r.wg.Add(int(r.env.user))
+	ctx, cancel := context.WithDeadline(context.Background(), r.env.lastTime)
+	defer cancel()
+	for current < r.env.user {
+		current += step
+		users := step
+		if current >= r.env.user {
+			users = step + r.env.user - current
 		}
-		return
+		for i := 1; i <= int(users); i++ {
+			random := rand.New(rand.NewSource(time.Now().UnixNano()))
+			idx := random.Intn(len(r.tasks))
+			go func(c context.Context) {
+				defer r.wg.Done()
+				for {
+					select {
+					case <-c.Done():
+						return
+					default:
+						r.tasks[idx].Run()
+					}
+				}
+			}(ctx)
+		}
+		time.Sleep(time.Second)
 	}
+	r.wg.Wait()
+}
+
+func (r *Runner) runWithLimiter() {
 	for {
 		select {
 		case <-r.ctx.Done():
 			// 停止
-			log.Println("context is done1")
 			return
 		default:
 			if err := r.env.limiter.Wait(r.ctx); err != nil {
@@ -76,7 +105,17 @@ func (r *Runner) Run() {
 			r.tasks[idx].Run()
 		}
 	}
+}
 
+func (r *Runner) Run() {
+	if r.tasks == nil || len(r.tasks) == 0 {
+		return
+	}
+	if r.env.limiter != nil {
+		r.runWithLimiter()
+		return
+	}
+	r.runWithUser()
 }
 
 func (r *Runner) SetTask(tasks ...*Task) {

@@ -1,10 +1,10 @@
-package slave
+package core
 
 import (
 	"context"
+	"encoding/json"
+	"fmt"
 	"github.com/vmihailenco/msgpack/v5"
-	"github.com/wuranxu/mouse/pkg/core"
-	"github.com/wuranxu/mouse/pkg/core/master"
 	"github.com/wuranxu/mouse/pkg/rpc"
 	"github.com/wuranxu/mouse/pkg/rpc/proto"
 	"github.com/wuranxu/mouse/pkg/utils"
@@ -20,12 +20,12 @@ import (
 
 const HeartbeatInterval = 5 * time.Second
 
-type Option func(*Slave)
+type SlaveOption func(*Slave)
 
 // Slave slave
 type Slave struct {
 	client proto.MouseService_DoClient
-	runner core.IRunner
+	runner IRunner
 	ctx    context.Context
 	NodeId string
 	// mac addr for machine
@@ -38,7 +38,8 @@ type Slave struct {
 	// quit chan
 	quit chan os.Signal
 	// error chan
-	err chan error
+	err   chan error
+	stats *RequestStats
 }
 
 // Quit disconnected with master
@@ -90,8 +91,29 @@ func (s *Slave) Work() {
 	}()
 	go s.Listen()
 
+	go s.stats.start()
+
+	// get statistics
+	go func() {
+		for {
+			select {
+			case data := <-s.stats.messageToRunnerChan:
+				marshal, err := json.Marshal(data)
+				if err != nil {
+					s.err <- err
+					return
+				}
+				if err = s.Send(rpc.Stats, marshal); err != nil {
+					s.err <- err
+				}
+			}
+		}
+	}()
+	defer s.Quit(true)
 	// start test
 	s.runner.Run()
+	startTime := time.Now().Unix() - s.stats.total.StartTime
+	fmt.Println(s.stats.total.NumRequests, startTime, s.stats.total.NumRequests/startTime)
 
 }
 
@@ -114,6 +136,24 @@ func (s *Slave) Listen() {
 	}
 }
 
+func (s *Slave) LogSuccess(requestType, name string, responseTime int64, responseLength int64) {
+	s.stats.requestSuccessChan <- &requestSuccess{
+		requestType:    requestType,
+		name:           name,
+		responseTime:   responseTime,
+		responseLength: responseLength,
+	}
+}
+
+func (s *Slave) LogFailure(requestType, name string, responseTime int64, exception string) {
+	s.stats.requestFailureChan <- &requestFailure{
+		requestType:  requestType,
+		name:         name,
+		responseTime: responseTime,
+		error:        exception,
+	}
+}
+
 // CheckSlaveStatus a goroutine for slave, check error/quit
 func (s *Slave) CheckSlaveStatus() {
 	for {
@@ -122,6 +162,7 @@ func (s *Slave) CheckSlaveStatus() {
 			if err != nil {
 				s.Quit(false)
 				log.Fatal("exception occurred: ", s.err)
+				return
 			}
 		case <-s.quit:
 			log.Println("quit by user")
@@ -136,8 +177,8 @@ func (s *Slave) CheckSlaveStatus() {
 
 func (s *Slave) uploadStats() error {
 	mem, cpu := utils.GetCpuAndMemoryUsage()
-	pack, err := msgpack.Marshal(master.WorkNodeStat{
-		State:              master.Ready,
+	pack, err := msgpack.Marshal(WorkNodeStat{
+		State:              Ready,
 		CurrentCpuUsage:    cpu,
 		CurrentMemoryUsage: mem,
 		Count:              0,
@@ -148,11 +189,12 @@ func (s *Slave) uploadStats() error {
 	return s.Send(rpc.Heartbeat, pack)
 }
 
-func newSlave(ctx context.Context, addr string, nodeId string, runner core.IRunner, opts ...Option) (s *Slave, err error) {
+func newSlave(ctx context.Context, addr string, nodeId string, runner IRunner, opts ...SlaveOption) (s *Slave, err error) {
 	s = &Slave{
 		NodeId: nodeId,
 		runner: runner, ctx: ctx,
 		ticker: time.NewTicker(HeartbeatInterval),
+		stats:  NewRequestStats(),
 	}
 
 	// load options
@@ -174,17 +216,17 @@ func newSlave(ctx context.Context, addr string, nodeId string, runner core.IRunn
 		return
 	}
 	s.quit = make(chan os.Signal, 1)
-	if runner.CurrentMode() == core.CommandMode {
+	if runner.Mode() == CommandMode {
 		signal.Notify(s.quit, syscall.SIGINT, syscall.SIGTERM, syscall.SIGKILL)
 	}
 	return
 }
 
-func NewSlaveContext(ctx context.Context, addr, nodeId string, runner core.IRunner, opts ...Option) (*Slave, error) {
+func NewSlaveContext(ctx context.Context, addr, nodeId string, runner IRunner, opts ...SlaveOption) (*Slave, error) {
 	return newSlave(ctx, addr, nodeId, runner, opts...)
 }
 
-func WithCancelFunc(cancelFunc context.CancelFunc) Option {
+func WithCancelFunc(cancelFunc context.CancelFunc) SlaveOption {
 	return func(slave *Slave) {
 		slave.cancel = cancelFunc
 	}

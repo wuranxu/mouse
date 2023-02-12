@@ -1,8 +1,9 @@
-package master
+package core
 
 import (
 	"errors"
 	"fmt"
+	json "github.com/json-iterator/go"
 	"github.com/vmihailenco/msgpack/v5"
 	"github.com/wuranxu/mouse/pkg/rpc"
 	"github.com/wuranxu/mouse/pkg/rpc/proto"
@@ -87,6 +88,12 @@ func (m *Master) updateClients(ch chan *proto.Message, srv proto.MouseService_Do
 		case rpc.Quit, rpc.Stop:
 			m.clients.Delete(data.NodeId)
 			log.Println(data.NodeId, "has disconnected.")
+		case rpc.Stats:
+			var result map[string]interface{}
+			if err := json.Unmarshal(data.Data, &result); err != nil {
+				log.Println("unmarshal message failed: ", err)
+			}
+			log.Println(data.NodeId, "received data: ", result["stats"])
 		case rpc.ClientReady, rpc.Reconnect:
 			node := &WorkNode{
 				server: srv,

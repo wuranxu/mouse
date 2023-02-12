@@ -1,8 +1,13 @@
 package core
 
+import "time"
+
 type Environment struct {
-	maxQps  int
-	limiter *RateLimiter
+	maxQps   int
+	limiter  *RateLimiter
+	user     int64
+	ramUp    int64
+	lastTime time.Time
 }
 
 type Option func(*Environment)
@@ -25,5 +30,13 @@ func WithLimiter(qps int) Option {
 	return func(environment *Environment) {
 		environment.maxQps = qps
 		environment.limiter = NewRateLimiter(float64(qps), qps)
+	}
+}
+
+func WithUser(user, period int64, last time.Time) Option {
+	return func(environment *Environment) {
+		environment.user = user
+		environment.ramUp = period
+		environment.lastTime = last
 	}
 }

@@ -1,12 +1,12 @@
 package main
 
 import (
-	"github.com/wuranxu/mouse/pkg/core/master"
+	"github.com/wuranxu/mouse/pkg/core"
 	"log"
 )
 
 func main() {
-	master, err := master.NewMaster("0.0.0.0", 12101)
+	master, err := core.NewMaster("0.0.0.0", 12101)
 	if err != nil {
 		log.Fatal("server start error: ", err)
 	}

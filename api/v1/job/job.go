@@ -50,13 +50,11 @@ func startJob(ctx *gin.Context) (any, error) {
 	if err != nil {
 		return ErrQueryScene, err
 	}
-	var qps int32 = 5
-	var interval int32 = 10
 	task := proto.Task{
-		TaskId:   1,
+		TaskId:   3,
 		Data:     data,
-		MaxQps:   &qps,
-		Interval: &interval,
+		MaxQps:   &body.MaxQps,
+		Interval: &body.Interval,
 	}
 	c := context.Background()
 	for _, addr := range body.Addr {

@@ -33,8 +33,8 @@ func New(app *gin.Engine) *Api {
 	return &Api{app: app}
 }
 
-func (a *Api) AddRoute() {
-	group := a.app.Group("/job")
+func (a *Api) AddRoute(middleware ...gin.HandlerFunc) {
+	group := a.app.Group("/job", middleware...)
 
 	// route
 	group.Handle("POST", "/run", u.Wrap(startJob))

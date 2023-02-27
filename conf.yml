@@ -1,0 +1,7 @@
+database:
+  host: 121.5.2.74
+  port: 3306
+  username: root
+  password: wuranxu@33
+  dbName: mouse
+  name: mysql

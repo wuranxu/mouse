@@ -8,7 +8,6 @@ type MouseUser struct {
 	Password    string   `gorm:"name:password;type:varchar(48);not null" json:"-" binding:"required"`
 	LastLoginAt JSONTime `gorm:"name:last_login_at;type:timestamp" json:"lastLoginAt"`
 	Role        *int     `gorm:"name:type;type:smallint;not null;default 0;" json:"role"`
-	Token       string   `json:"token" gorm:"-"`
 }
 
 func (*MouseUser) TableName() string {

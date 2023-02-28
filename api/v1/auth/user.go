@@ -68,12 +68,11 @@ func login(ctx *gin.Context) (any, error) {
 	if err != nil {
 		return ErrGenerateTokenCode, ErrGenerateToken
 	}
-	resp.Token = token
 	resp.LastLoginAt = model.Now()
 	if err = dao.Conn.Save(resp); err != nil {
 		return ErrUpdateLastLoginAtCode, ErrUpdateLastLoginAt
 	}
-	ctx.SetCookie(mouseToken, resp.Token, 3600*8, "/", ctx.Request.Host, true, true)
+	ctx.SetCookie(mouseToken, token, 3600*8, "/", ctx.Request.Host, true, true)
 	return resp, nil
 }
 

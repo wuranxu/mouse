@@ -3,9 +3,12 @@ package dao
 import (
 	"errors"
 	"fmt"
+	ms "github.com/go-sql-driver/mysql"
 	"github.com/wuranxu/mouse/conf"
 	"github.com/wuranxu/mouse/model"
 	"gorm.io/driver/mysql"
+	"strings"
+
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
 	"reflect"
@@ -15,6 +18,8 @@ var (
 	UnSupportedDatabase = errors.New("database is not supported now")
 	UpdateParamsError   = errors.New("you must provide update column and value")
 	StructError         = errors.New("you must provide the same struct")
+
+	DuplicateKey = errors.New("field exists")
 )
 
 var (
@@ -74,6 +79,15 @@ func (c *Cursor) Find(out interface{}, where ...interface{}) *Cursor {
 	return c
 }
 
+func (c *Cursor) MustFind(out interface{}, where ...interface{}) error {
+	db := c.DB.Find(out, where...)
+	if db.RowsAffected == 0 {
+		// not found
+		return gorm.ErrRecordNotFound
+	}
+	return nil
+}
+
 func (c *Cursor) Order(value string) error {
 	return c.DB.Order(value).Error
 }
@@ -87,7 +101,7 @@ func (c *Cursor) FindPagination(page, pageSize int, out interface{}, where ...in
 func (c *Cursor) FindPaginationAndOrder(page, pageSize int, order string, out interface{}, where ...interface{}) (int64, error) {
 	var total int64
 	c.DB = c.DB.Find(out, where...).Count(&total)
-	err := c.Page(page, pageSize).Order(order)
+	err := wrapper(c.Page(page, pageSize).Order(order))
 	return total, err
 }
 
@@ -102,19 +116,19 @@ func (c *Cursor) Select(query interface{}, args ...interface{}) *Cursor {
 }
 
 func (c *Cursor) Sql(v interface{}, sql string, params ...interface{}) error {
-	return c.Raw(sql, params...).Scan(v).Error
+	return wrapper(c.Raw(sql, params...).Scan(v).Error)
 }
 
 func (c *Cursor) Insert(v interface{}) error {
-	return c.Create(v).Error
+	return wrapper(c.Create(v).Error)
 }
 
 func (c *Cursor) Delete(v interface{}, where ...interface{}) error {
-	return c.DB.Delete(v, where...).Error
+	return wrapper(c.DB.Delete(v, where...).Error)
 }
 
 func (c *Cursor) Save(v interface{}) error {
-	return c.DB.Save(v).Error
+	return wrapper(c.DB.Save(v).Error)
 }
 
 func (c *Cursor) Updates(v interface{}, attrs ...interface{}) (int64, error) {
@@ -148,7 +162,7 @@ func (c *Cursor) Updates(v interface{}, attrs ...interface{}) (int64, error) {
 			c.DB = c.Model(v).Update(attrs[i].(string), attrs[i+1])
 		}
 	}
-	return c.DB.RowsAffected, c.DB.Error
+	return c.DB.RowsAffected, wrapper(c.DB.Error)
 }
 
 func (c *Cursor) Page(current, pageSize int) *Cursor {
@@ -167,4 +181,19 @@ func InitDatabase() (err error) {
 		}
 	}
 	return
+}
+
+func wrapper(err error) error {
+	switch e := err.(type) {
+	case *ms.MySQLError:
+		switch e.Number {
+		case 1062:
+			// duplicate key
+			split := strings.Split(e.Message, "'")
+			return fmt.Errorf("[%v] %s", DuplicateKey, split[len(split)-2])
+		}
+		return err
+	default:
+		return err
+	}
 }

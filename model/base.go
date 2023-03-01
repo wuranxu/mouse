@@ -66,5 +66,5 @@ type Model struct {
 }
 
 var Tables = []any{
-	MouseUser{},
+	MouseUser{}, MouseStep{}, MouseScene{},
 }

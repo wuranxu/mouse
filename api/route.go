@@ -4,6 +4,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/wuranxu/mouse/api/v1/auth"
 	"github.com/wuranxu/mouse/api/v1/job"
+	"github.com/wuranxu/mouse/api/v1/scene"
 )
 
 type Router interface {
@@ -15,4 +16,7 @@ func Register(app *gin.Engine) {
 
 	// register job route
 	job.New(app).AddRoute()
+
+	// register scene route
+	scene.New(app).AddRoute()
 }

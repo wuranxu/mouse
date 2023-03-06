@@ -3,11 +3,11 @@ package main
 import (
 	"flag"
 	"fmt"
-	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
 	"github.com/wuranxu/mouse/api"
 	"github.com/wuranxu/mouse/conf"
 	"github.com/wuranxu/mouse/dao"
+	"github.com/wuranxu/mouse/middleware"
 	"log"
 )
 
@@ -26,11 +26,7 @@ func main() {
 		log.Fatal("create/update table failed: ", err)
 	}
 	app := gin.New()
-	app.Use(cors.New(cors.Config{
-		AllowOrigins: []string{"*"},
-		AllowMethods: []string{"OPTION", "GET", "PUT", "POST", "DELETE", "PATCH"},
-		AllowHeaders: []string{"*"},
-	}))
+	app.Use(middleware.Cors())
 	app.Use(gin.Logger(), gin.Recovery())
 
 	// register route

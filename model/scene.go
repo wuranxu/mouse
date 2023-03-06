@@ -10,9 +10,11 @@ const (
 // MouseScene scene table
 type MouseScene struct {
 	Model
-	Name      string    `gorm:"type:varchar(48);not null" json:"name"`
-	SceneType SceneType `gorm:"type:int;not null;default 1" json:"sceneType"`
-	Steps     string    `gorm:"type:text;not null" json:"steps"`
+	Name       string    `gorm:"type:varchar(48);not null" json:"name"`
+	SceneType  SceneType `gorm:"type:int;not null;default 1" json:"sceneType"`
+	Steps      string    `gorm:"type:text;not null" json:"steps"`
+	CreateUser uint      `gorm:"type:int;not null" json:"createUser"`
+	UpdateUser uint      `gorm:"type:int;not null" json:"updateUser"`
 }
 
 func (m *MouseScene) TableName() string {

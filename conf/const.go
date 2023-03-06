@@ -5,6 +5,12 @@ import (
 	"os"
 )
 
+const (
+	MouseToken      = "mouse_token"
+	MouseUser       = "mouse_user"
+	MouseParameters = "mouse_parameters"
+)
+
 var Conf = new(Config)
 
 type SqlConfig struct {

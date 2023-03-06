@@ -1,28 +1,11 @@
 package job
 
 import (
-	"context"
-	"errors"
 	"github.com/gin-gonic/gin"
-	"github.com/wuranxu/mouse/api/v1/proto"
-	u "github.com/wuranxu/mouse/api/v1/util"
 	"github.com/wuranxu/mouse/dto"
-	"google.golang.org/grpc"
-	"google.golang.org/grpc/credentials/insecure"
-	"io/ioutil"
-)
-
-const MethodName = "/MouseService/Start"
-
-const (
-	ErrConnectClientCode = iota + 10010
-	ErrStartClientCode
-	ErrParseParametersCode
-	ErrQueryScene
-)
-
-var (
-	ErrConnectClient = errors.New("can't connect to client")
+	"github.com/wuranxu/mouse/middleware"
+	"github.com/wuranxu/mouse/service/job"
+	"github.com/wuranxu/mouse/utils/request"
 )
 
 type Api struct {
@@ -33,43 +16,9 @@ func New(app *gin.Engine) *Api {
 	return &Api{app: app}
 }
 
-func (a *Api) AddRoute(middleware ...gin.HandlerFunc) {
-	group := a.app.Group("/job", middleware...)
+func (a *Api) AddRoute(middlewares ...gin.HandlerFunc) {
+	group := a.app.Group("/job", middlewares...)
 
 	// route
-	group.Handle("POST", "/run", u.Wrap(startJob))
-}
-
-func startJob(ctx *gin.Context) (any, error) {
-	var body dto.StartJobDto
-	if err := ctx.ShouldBindJSON(&body); err != nil {
-		return ErrParseParametersCode, err
-	}
-	// mock data
-	data, err := ioutil.ReadFile("./test_data.yml")
-	if err != nil {
-		return ErrQueryScene, err
-	}
-	task := proto.Task{
-		TaskId:   3,
-		Data:     data,
-		MaxQps:   &body.MaxQps,
-		Interval: &body.Interval,
-	}
-	c := context.Background()
-	for _, addr := range body.Addr {
-		conn, err := grpc.Dial(addr, grpc.WithTransportCredentials(insecure.NewCredentials()))
-		if err != nil {
-			return ErrConnectClientCode, u.ErrWrap(ErrConnectClient, err)
-		}
-		var res proto.MouseResponse
-		err = conn.Invoke(c, MethodName, &task, &res)
-		if err != nil {
-			return ErrStartClientCode, err
-		}
-		if res.Code != 0 {
-			return ErrStartClientCode, errors.New(res.Msg)
-		}
-	}
-	return nil, nil
+	group.POST("/run", middleware.ValidateJSON[dto.StartJobDto], request.Wrap(job.StartJob))
 }

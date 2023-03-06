@@ -18,6 +18,6 @@ func New(app *gin.Engine) *Api {
 
 func (a *Api) AddRoute(middlewares ...gin.HandlerFunc) {
 	group := a.app.Group("/scene", middlewares...)
-	group.GET("/", request.Wrap(scene.QueryScene))
-	group.POST("/insert", middleware.ValidateJSON[dto.SceneDto], request.Wrap(scene.CreateScene))
+	group.GET("/", request.Handle(scene.QueryScene))
+	group.POST("/insert", middleware.ValidateJSON[dto.SceneDto], request.Handle(scene.CreateScene))
 }

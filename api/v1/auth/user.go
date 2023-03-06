@@ -19,7 +19,7 @@ func New(app *gin.Engine) *Api {
 func (a *Api) AddRoute(middlewares ...gin.HandlerFunc) {
 	group := a.app.Group("/auth", middlewares...)
 
-	group.POST("/login", middleware.ValidateJSON[dto.LoginDto], request.Wrap(auth.Login))
-	group.POST("/register", middleware.ValidateJSON[dto.RegisterDto], request.Wrap(auth.Register))
-	group.GET("/currentUser", request.Wrap(auth.Query))
+	group.POST("/login", middleware.ValidateJSON[dto.LoginDto], request.Handle(auth.Login))
+	group.POST("/register", middleware.ValidateJSON[dto.RegisterDto], request.Handle(auth.Register))
+	group.GET("/currentUser", request.Handle(auth.Query))
 }

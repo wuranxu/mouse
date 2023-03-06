@@ -37,14 +37,14 @@ func Failed(ctx *gin.Context, code int, msg error) {
 	})
 }
 
-func Wrap(f func(ctx *gin.Context) (any, error)) gin.HandlerFunc {
+func Handle(f func(ctx *gin.Context) (any, error)) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		data, err := f(c)
-		code, ok := data.(int)
-		if !ok {
-			code = 110
-		}
 		if err != nil {
+			code, ok := data.(int)
+			if !ok {
+				code = 110
+			}
 			Failed(c, code, err)
 			return
 		}

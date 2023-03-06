@@ -20,5 +20,5 @@ func (a *Api) AddRoute(middlewares ...gin.HandlerFunc) {
 	group := a.app.Group("/job", middlewares...)
 
 	// route
-	group.POST("/run", middleware.ValidateJSON[dto.StartJobDto], request.Wrap(job.StartJob))
+	group.POST("/run", middleware.ValidateJSON[dto.StartJobDto], request.Handle(job.StartJob))
 }

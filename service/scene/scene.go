@@ -13,13 +13,30 @@ const (
 	ErrQuerySceneParamsCode = iota + 10030
 	ErrQuerySceneCode
 	ErrCreateSceneCode
+	ErrListSceneCode
 )
 
 var (
 	ErrQuerySceneParams = exception.Err("invalid sceneId")
 	ErrQueryScene       = exception.Err("query scene failed")
 	ErrCreateScene      = exception.Err("create scene failed")
+	ErrListScene        = exception.Err("list scene failed")
 )
+
+func ListScene(ctx *gin.Context) (any, error) {
+	name := ctx.Query("name")
+	query := mapper.NewLambdaQuery[model.MouseScene]()
+	if name != "" {
+		query.Like("name", name)
+	}
+
+	query.Log().Preload("MouseUser.ID")
+	list, err := mapper.SceneMapper.SelectList(query)
+	if err != nil {
+		return ErrListSceneCode, ErrListScene
+	}
+	return list, nil
+}
 
 func QueryScene(ctx *gin.Context) (any, error) {
 	sceneId := ctx.Query("sceneId")
@@ -39,14 +56,11 @@ func QueryScene(ctx *gin.Context) (any, error) {
 func CreateScene(ctx *gin.Context) (any, error) {
 	user := request.GetUser(ctx)
 	data := request.GetJson[dto.SceneDto](ctx)
-	s := &model.MouseScene{
-		Name:       data.Name,
-		SceneType:  data.SceneType,
-		Steps:      data.Steps,
-		CreateUser: user.ID,
-		UpdateUser: user.ID,
-	}
-	if err := mapper.SceneMapper.Insert(s); err != nil {
+	s := model.NewMouseScene()
+	s.Name = data.Name
+	s.SceneType = data.SceneType
+	s.Steps = data.Steps
+	if err := mapper.SceneMapper.Insert(s, user.ID); err != nil {
 		return ErrCreateSceneCode, ErrCreateScene.New(err)
 	}
 	return s, nil

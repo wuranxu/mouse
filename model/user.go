@@ -1,7 +1,7 @@
 package model
 
 type MouseUser struct {
-	Model
+	BaseModel
 	Name        string   `gorm:"name:name;not null" json:"name"`
 	Username    string   `gorm:"name:username;unique;not null" json:"username" binding:"required"`
 	Email       string   `gorm:"name:email;unique;not null;type:varchar(48)" json:"email" binding:"required"`

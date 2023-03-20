@@ -59,10 +59,44 @@ func (t *JSONTime) UnmarshalJSON(p []byte) error {
 }
 
 type Model struct {
+	ID         uint           `gorm:"primary_key" json:"id"`
+	CreatedAt  JSONTime       `gorm:"column:created_at" json:"createdAt"`
+	UpdatedAt  JSONTime       `gorm:"column:updated_at" json:"updatedAt"`
+	CreateUser uint           `gorm:"type:int" json:"createUser"`
+	UpdateUser uint           `gorm:"type:int" json:"updateUser"`
+	DeletedAt  gorm.DeletedAt `sql:"index" json:"deletedAt"`
+}
+
+// BaseModel no creator info
+type BaseModel struct {
 	ID        uint           `gorm:"primary_key" json:"id"`
-	CreatedAt JSONTime       `json:"createdAt"`
-	UpdatedAt JSONTime       `json:"updatedAt"`
+	CreatedAt JSONTime       `gorm:"column:created_at" json:"createdAt"`
+	UpdatedAt JSONTime       `gorm:"column:updated_at" json:"updatedAt"`
 	DeletedAt gorm.DeletedAt `sql:"index" json:"deletedAt"`
+}
+
+type IModel interface {
+	Update(user uint)
+	Create(user uint)
+	Delete(user uint)
+}
+
+func (m *Model) Update(user uint) {
+	m.UpdateUser = user
+	m.UpdatedAt = Now()
+}
+
+func (m *Model) Delete(user uint) {
+	m.UpdateUser = user
+	m.UpdatedAt = Now()
+	m.DeletedAt = gorm.DeletedAt{Time: time.Now()}
+}
+
+func (m *Model) Create(user uint) {
+	m.CreateUser = user
+	m.UpdateUser = user
+	m.CreatedAt = Now()
+	m.UpdatedAt = Now()
 }
 
 var Tables = []any{

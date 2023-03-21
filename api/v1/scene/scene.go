@@ -17,10 +17,21 @@ func New(app *gin.Engine) *Api {
 }
 
 func (a *Api) AddRoute(middlewares ...gin.HandlerFunc) {
-	group := a.app.Group("/scene", middlewares...)
+
+	group := a.app.Group("/api/v1/scene", middlewares...)
+
+	// query single scene data
 	group.GET("/", request.Handle(scene.QueryScene))
+
+	// list scene
 	group.GET("/list", request.Handle(scene.ListScene))
+
+	// insert scene
 	group.POST("/insert", middleware.ValidateJSON[dto.SceneDto], request.Handle(scene.CreateScene))
+
+	// update scene
 	group.PUT("/update", middleware.ValidateJSON[dto.SceneDto], request.Handle(scene.UpdateScene))
+
+	// remove scene
 	group.DELETE("/delete", request.Handle(scene.DeleteScene))
 }

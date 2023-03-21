@@ -78,18 +78,11 @@ type BaseModel struct {
 type IModel interface {
 	Update(user uint)
 	Create(user uint)
-	Delete(user uint)
 }
 
 func (m *Model) Update(user uint) {
 	m.UpdateUser = user
 	m.UpdatedAt = Now()
-}
-
-func (m *Model) Delete(user uint) {
-	m.UpdateUser = user
-	m.UpdatedAt = Now()
-	m.DeletedAt = gorm.DeletedAt{Time: time.Now()}
 }
 
 func (m *Model) Create(user uint) {

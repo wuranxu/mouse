@@ -48,7 +48,9 @@ func NewConnect(cfg conf.SqlConfig) (cur *Cursor, err error) {
 		err = UnSupportedDatabase
 		return
 	}
-	db, err = gorm.Open(dialector)
+	db, err = gorm.Open(dialector, &gorm.Config{
+		DisableForeignKeyConstraintWhenMigrating: true,
+	})
 	if err != nil {
 		return
 	}

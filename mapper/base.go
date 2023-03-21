@@ -45,9 +45,9 @@ func (m *Mapper[T]) Insert(t *T, user uint) error {
 	return dao.Conn.Model(t).Create(t).Error
 }
 
-func (m *Mapper[T]) DeleteById(id any) error {
+func (m *Mapper[T]) DeleteById(id any, user uint) error {
 	var t T
-	return dao.Conn.Model(&t).Delete(&t, `id = ?`, id).Error
+	return dao.Conn.Model(&t).Where(`id = ?`, id).Update("update_user", user).Delete(&t).Error
 }
 
 func wrapperErr(err error) error {

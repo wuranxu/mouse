@@ -14,6 +14,9 @@ const (
 	ErrQuerySceneCode
 	ErrCreateSceneCode
 	ErrListSceneCode
+	ErrDataNotExistsCode
+	ErrUpdateSceneCode
+	ErrDeleteSceneCode
 )
 
 var (
@@ -21,17 +24,18 @@ var (
 	ErrQueryScene       = exception.Err("query scene failed")
 	ErrCreateScene      = exception.Err("create scene failed")
 	ErrListScene        = exception.Err("list scene failed")
+	ErrDataNotExists    = exception.Err("data not exists")
+	ErrUpdateScene      = exception.Err("update scene failed")
+	ErrDeleteScene      = exception.Err("delete scene failed")
 )
+
+var sceneMapper = &mapper.Scene{}
 
 func ListScene(ctx *gin.Context) (any, error) {
 	name := ctx.Query("name")
 	query := mapper.NewLambdaQuery[model.MouseScene]()
-	if name != "" {
-		query.Like("name", name)
-	}
-
-	query.Log().Preload("MouseUser.ID")
-	list, err := mapper.SceneMapper.SelectList(query)
+	query = query.Like("name", name).Preloads("Creator", "Updater")
+	list, err := sceneMapper.SelectList(query)
 	if err != nil {
 		return ErrListSceneCode, ErrListScene
 	}
@@ -44,7 +48,7 @@ func QueryScene(ctx *gin.Context) (any, error) {
 		return ErrQuerySceneParamsCode, ErrQuerySceneParams
 	}
 	var scene model.MouseScene
-	if err := mapper.SceneMapper.SelectById(sceneId, &scene); err != nil {
+	if err := sceneMapper.SelectById(sceneId, &scene); err != nil {
 		return ErrQuerySceneCode, ErrQueryScene.New(err)
 	}
 	if scene.ID == 0 {
@@ -60,8 +64,36 @@ func CreateScene(ctx *gin.Context) (any, error) {
 	s.Name = data.Name
 	s.SceneType = data.SceneType
 	s.Steps = data.Steps
-	if err := mapper.SceneMapper.Insert(s, user.ID); err != nil {
+	if err := sceneMapper.Insert(s, user.ID); err != nil {
 		return ErrCreateSceneCode, ErrCreateScene.New(err)
 	}
 	return s, nil
+}
+
+func UpdateScene(ctx *gin.Context) (any, error) {
+	user := request.GetUser(ctx)
+	data := request.GetJson[dto.SceneDto](ctx)
+	scene := model.NewMouseScene()
+	if err := sceneMapper.SelectById(data.ID, scene); err != nil {
+		return ErrQuerySceneCode, ErrQueryScene
+	}
+	if scene == nil {
+		return ErrDataNotExistsCode, ErrDataNotExists
+	}
+	scene.Name = data.Name
+	scene.SceneType = data.SceneType
+	scene.Steps = data.Steps
+	if err := sceneMapper.UpdateById(scene, user.ID); err != nil {
+		return ErrUpdateSceneCode, ErrUpdateScene.New(err)
+	}
+	return scene, nil
+}
+
+func DeleteScene(ctx *gin.Context) (any, error) {
+	user := request.GetUser(ctx)
+	sceneId := ctx.Query("sceneId")
+	if err := sceneMapper.DeleteById(sceneId, user.ID); err != nil {
+		return ErrDeleteSceneCode, ErrDeleteScene
+	}
+	return nil, nil
 }

@@ -13,8 +13,8 @@ type MouseScene struct {
 	Name      string    `gorm:"type:varchar(48);not null;unique" json:"name"`
 	SceneType SceneType `gorm:"type:int;not null;default 1" json:"sceneType"`
 	Steps     string    `gorm:"type:text;not null" json:"steps"`
-	Creator   MouseUser `json:"creator" gorm:"-"`
-	Updater   MouseUser `json:"updater" gorm:"-"`
+	Creator   MouseUser `gorm:"foreignKey:CreateUser" json:"creator"`
+	Updater   MouseUser `gorm:"foreignKey:UpdateUser" json:"updater"`
 }
 
 func (m *MouseScene) TableName() string {

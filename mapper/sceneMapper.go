@@ -6,4 +6,4 @@ type Scene struct {
 	Mapper[model.MouseScene]
 }
 
-var SceneMapper = &Scene{Mapper[model.MouseScene]{}}
+var SceneMapper = &Scene{}

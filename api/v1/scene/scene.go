@@ -21,4 +21,6 @@ func (a *Api) AddRoute(middlewares ...gin.HandlerFunc) {
 	group.GET("/", request.Handle(scene.QueryScene))
 	group.GET("/list", request.Handle(scene.ListScene))
 	group.POST("/insert", middleware.ValidateJSON[dto.SceneDto], request.Handle(scene.CreateScene))
+	group.PUT("/update", middleware.ValidateJSON[dto.SceneDto], request.Handle(scene.UpdateScene))
+	group.DELETE("/delete", request.Handle(scene.DeleteScene))
 }

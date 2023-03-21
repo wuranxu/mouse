@@ -18,7 +18,7 @@ func New(app *gin.Engine) *Api {
 
 func (a *Api) AddRoute(middlewares ...gin.HandlerFunc) {
 
-	group := a.app.Group("/api/v1/scene", middlewares...)
+	group := a.app.Group("/v1/scene", middlewares...)
 
 	// query single scene data
 	group.GET("/", request.Handle(scene.QueryScene))
